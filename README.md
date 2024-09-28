@@ -1,0 +1,2 @@
+Sample Wasm Component Model
+---
