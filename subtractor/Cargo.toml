@@ -1,0 +1,28 @@
+[package]
+name = "subtractor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wit-bindgen-rt = { version = "0.32.0", features = ["bitflags"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+debug = false
+strip = true
+lto = true
+
+[package.metadata.component]
+package = "component:subtractor"
+
+[package.metadata.component.dependencies]
+
+[package.metadata.component.target]
+path = "../wit/subtractor"
+world = "subtractor"
+
+[package.metadata.component.target.dependencies]
