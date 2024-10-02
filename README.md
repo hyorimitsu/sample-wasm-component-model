@@ -22,12 +22,12 @@ flowchart LR
 
 ## Languages/Tools Used
 
-| Language/Tool                  | Description                                                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Rust                           | A systems programming language focusing on speed, memory safety, and parallelism. Used here for implementing WebAssembly components. |
-| cargo component                | A command-line tool used for building WebAssembly components.                                                                        |
-| WebAssembly Compositions (WAC) | A tool used for composing WebAssembly components.                                                                                    |
-| Wasmtime                       | A fast and secure runtime for executing WebAssembly modules, including support for the Wasm Component Model.                         |
+| Language/Tool                                                             | Description                                                                                                                          |
+|---------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| [Rust](https://www.rust-lang.org/)                                        | A systems programming language focusing on speed, memory safety, and parallelism. Used here for implementing WebAssembly components. |
+| [cargo component](https://github.com/bytecodealliance/cargo-component)    | A command-line tool used for building WebAssembly components.                                                                        |
+| [WebAssembly Compositions (WAC)](https://github.com/bytecodealliance/wac) | A tool used for composing WebAssembly components.                                                                                    |
+| [Wasmtime](https://docs.wasmtime.dev/)                                    | A fast and secure runtime for executing WebAssembly modules, including support for the Wasm Component Model.                         |
 
 ## How to Use
 
@@ -150,6 +150,29 @@ cd multiplier && cargo component build && cd ../
 
 Ensure that `multiplier/src/bindings.rs` has been generated.
 
+<details>
+<summary>Troubleshooting</summary>
+The following error may occur, but you can safely ignore it.
+
+```shell
+error[E0432]: unresolved import `bindings::Guest`
+ --> src/lib.rs:4:5
+  |
+4 | use bindings::Guest;
+  |     ^^^^^^^^^^^^^^^ no `Guest` in `bindings`
+  |
+help: consider importing this trait instead
+  |
+4 | use crate::bindings::exports::component::multiplier::multiply::Guest;
+  |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `multiplier` (lib) due to 1 previous error
+```
+
+**The subsequent steps assume that your current directory is the project root, so please move there if necessary.**
+</details>
+
 #### 1.5. Implement the Guest Trait
 
 Finally, implement the `Guest` trait:
@@ -221,6 +244,39 @@ Run the following command to regenerate the bindings:
 cd calculator && cargo component build && cd ../
 ```
 
+<details>
+<summary>Troubleshooting</summary>
+The following error may occur, but you can safely ignore it.
+
+```shell
+error[E0004]: non-exhaustive patterns: `Op::Mul` not covered
+   --> src/lib.rs:11:15
+    |
+11  |         match op {
+    |               ^^ pattern `Op::Mul` not covered
+    |
+note: `Op` defined here
+   --> src/bindings.rs:99:26
+    |
+99  |                 pub enum Op {
+    |                          ^^
+...
+102 |                     Mul,
+    |                     --- not covered
+    = note: the matched value is of type `Op`
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern or an explicit pattern as shown
+    |
+13  ~             Op::Sub => subtract(x, y),
+14  ~             Op::Mul => todo!(),
+    |
+
+For more information about this error, try `rustc --explain E0004`.
+error: could not compile `calculator` (lib) due to 1 previous error
+```
+
+**The subsequent steps assume that your current directory is the project root, so please move there if necessary.**
+</details>
+
 #### 2.4. Update the Guest Trait
 
 Modify the `Guest` trait:
@@ -259,12 +315,53 @@ Update the dependencies:
 "component:multiplier" = { path = "wit/multiplier" }  # New dependency
 ```
 
-#### 3.2. Edit `main.rs`
+#### 3.2. Regenerate `bindings.rs`
+
+Run the following command to regenerate the bindings:
+
+```shell
+cargo component build
+```
+
+<details>
+<summary>Troubleshooting</summary>
+The following error may occur, but you can safely ignore it.
+
+```shell
+error[E0004]: non-exhaustive patterns: `&Op::Mul` not covered
+  --> src/main.rs:18:15
+   |
+18 |         match self {
+   |               ^^^^ pattern `&Op::Mul` not covered
+   |
+note: `Op` defined here
+  --> src/bindings.rs:13:22
+   |
+13 |             pub enum Op {
+   |                      ^^
+...
+16 |                 Mul,
+   |                 --- not covered
+   = note: the matched value is of type `&Op`
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern or an explicit pattern as shown
+   |
+20 ~             Op::Sub => write!(f, "-"),
+21 ~             &Op::Mul => todo!(),
+   |
+
+For more information about this error, try `rustc --explain E0004`.
+error: could not compile `app` (bin "app") due to 1 previous error
+```
+</details>
+
+#### 3.3. Edit `main.rs`
 
 Update `main.rs` to parse the new operation:
 
 **src/main.rs**
 ```rust
+// ...
+
 fn parse_operator(op: &str) -> anyhow::Result<Op> {
     match op {
         "add" => Ok(Op::Add),
@@ -283,6 +380,8 @@ impl fmt::Display for Op {
         }
     }
 }
+
+// ...
 ```
 
 ### 4. Build & Run
